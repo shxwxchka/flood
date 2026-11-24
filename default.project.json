@@ -21,12 +21,6 @@
                   }
                 }
               },
-              "IsMouseEntered": {
-                "$path": "src/features/app/ui/IsMouseEntered.luau"
-              },
-              "IsVisible": {
-                "$path": "src/features/app/ui/IsVisible.luau"
-              },
               "root.story": {
                 "$path": "src/features/app/ui/root.story.luau"
               },
@@ -52,7 +46,16 @@
           }
         },
         "Core": {
-          "$className": "Folder"
+          "$className": "Folder",
+          "UI": {
+            "$className": "Folder",
+            "IsMouseEntered": {
+              "$path": "src/core/ui/IsMouseEntered.luau"
+            },
+            "IsVisible": {
+              "$path": "src/core/ui/IsVisible.luau"
+            }
+          }
         },
         "Game": {
           "$className": "Folder"

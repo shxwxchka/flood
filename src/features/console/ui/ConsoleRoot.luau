@@ -81,6 +81,7 @@ return function()
 		setInputBoxText("")
 		task.wait()
 		inputBoxRef.current:CaptureFocus()
+
 		task.defer(function()
 			local absoluteCanvasSizeY = dScrollPanelRef.current.AbsoluteCanvasSize.Y
 			local absoluteWindowSizeY = dScrollPanelRef.current.AbsoluteWindowSize.Y

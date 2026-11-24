@@ -2,8 +2,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local React = require(ReplicatedStorage.Packages.React)
-local IsMouseEntered = require(ReplicatedStorage.Source.Features.App.UI.IsMouseEntered)
-local IsVisible = require(ReplicatedStorage.Source.Features.App.UI.IsVisible)
+local IsMouseEntered = require(ReplicatedStorage.Source.Core.UI.IsMouseEntered)
+local IsVisible = require(ReplicatedStorage.Source.Core.UI.IsVisible)
 
 local e = React.createElement
 
