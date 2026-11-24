@@ -1,0 +1,92 @@
+{
+  "emitLegacyScripts": false,
+  "name": "flood",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Source": {
+        "$className": "Folder",
+        "Features": {
+          "$className": "Folder",
+          "App": {
+            "$className": "Folder",
+            "UI": {
+              "$className": "Folder",
+              "Components": {
+                "$className": "Folder",
+                "Vgui": {
+                  "$className": "Folder",
+                  "DScrollPanel": {
+                    "$path": "src/features/app/ui/components/vgui/DScrollPanel.luau"
+                  }
+                }
+              },
+              "IsMouseEntered": {
+                "$path": "src/features/app/ui/IsMouseEntered.luau"
+              },
+              "IsVisible": {
+                "$path": "src/features/app/ui/IsVisible.luau"
+              },
+              "root.story": {
+                "$path": "src/features/app/ui/root.story.luau"
+              },
+              "RootUI": {
+                "$path": "src/features/app/ui/RootUI.luau"
+              }
+            }
+          },
+          "Console": {
+            "$className": "Folder",
+            "UI": {
+              "$className": "Folder",
+              "ConsoleRoot": {
+                "$path": "src/features/console/ui/ConsoleRoot.luau"
+              }
+            }
+          },
+          "Output": {
+            "$className": "Folder",
+            "OutputService": {
+              "$path": "src/features/output/OutputService.luau"
+            }
+          }
+        },
+        "Core": {
+          "$className": "Folder"
+        },
+        "Game": {
+          "$className": "Folder"
+        },
+        "StartUp": {
+          "$className": "Folder",
+          "Client": {
+            "$path": "src/startup/Client.client.luau"
+          },
+          "UI": {
+            "$path": "src/startup/UI.luau"
+          }
+        }
+      },
+      "Packages": {
+        "$path": "Packages"
+      }
+    },
+    "ServerScriptService": {
+      "Features": {
+        "$className": "Folder"
+      },
+      "Core": {
+        "$className": "Folder"
+      },
+      "Game": {
+        "$className": "Folder"
+      },
+      "StartUp": {
+        "$className": "Folder",
+        "Server": {
+          "$path": "src/startup/Server.server.luau"
+        }
+      }
+    }
+  }
+}

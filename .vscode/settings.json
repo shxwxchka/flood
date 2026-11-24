@@ -1,0 +1,6 @@
+{
+  "stylua.targetReleaseVersion": "latest",
+  "luau-lsp.types.definitionFiles": {
+    "globals": "./src/game/definitions/defs.d.luau"
+  }
+}

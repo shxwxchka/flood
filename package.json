@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:rojo": "node tools/genFeatureTree.js",
+    "watch:rojo": "chokidar \"src/**/*\" -c \"npm run build:rojo\""
+  },
+  "dependencies": {
+    "chokidar-cli": "^3.0.0"
+  }
+}

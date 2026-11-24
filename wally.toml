@@ -1,0 +1,19 @@
+[package]
+name = "shewachka/flood"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
+Charm = "littensy/charm@0.10.0"
+DataServiceTyped = "leifstout/dataservicetyped@1.1.0"
+Janitor = "howmanysmall/janitor@1.17.0"
+Networker = "leifstout/networker@0.3.0"
+Promise = "howmanysmall/typed-promise@4.0.6"
+React = "jsdotlua/react@17.2.1"
+ReactCharm = "littensy/react-charm@0.3.0"
+ReactErrorBoundary = "chriscerie/react-error-boundary@0.2.0"
+ReactRoblox = "jsdotlua/react-roblox@17.2.1"
+Ripple = "littensy/ripple@0.10.0"
+Sift = "csqrl/sift@0.0.11"
+Signal = "sleitnick/signal@2.0.0"
