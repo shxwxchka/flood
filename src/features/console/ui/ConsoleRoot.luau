@@ -4,6 +4,7 @@ local TextService = game:GetService("TextService")
 local UserInputService = game:GetService("UserInputService")
 
 local React = require(ReplicatedStorage.Packages.React)
+local Sift = require(ReplicatedStorage.Packages.Sift)
 local ColorizeText = require(ReplicatedStorage.Source.Core.UI.ColorizeText)
 local EscapeText = require(ReplicatedStorage.Source.Core.UI.EscapeText)
 local DScrollPanel = require(ReplicatedStorage.Source.Features.App.UI.Components.Vgui.DScrollPanel)
@@ -21,18 +22,22 @@ local COLORS = {
 	SUBMIT_TEXT_HOVERED = Color3.fromRGB(32, 115, 180),
 	SUBMIT_HOLD = Color3.fromRGB(83, 180, 245),
 	SUBMIT_TEXT_HOLD = Color3.fromRGB(255, 255, 255),
+	SUGGEST = Color3.fromRGB(234, 234, 234),
+	SUGGEST_TEXT = Color3.fromRGB(79, 79, 79),
+	SUGGEST_HOVERED = Color3.fromRGB(133, 184, 241),
+	SUGGEST_TEXT_HOVERED = Color3.fromRGB(255, 255, 255),
 	MESSAGE_OUTPUT = Color3.fromRGB(255, 255, 255),
 	MESSAGE_WARN = Color3.fromRGB(255, 222, 102),
 	MESSAGE_ERROR = Color3.fromRGB(255, 90, 90),
 }
 
 local FONTS = {
-	InconsolataLight = Font.new(
+	RobotoMonoLight = Font.new(
 		"rbxasset://fonts/families/RobotoMono.json",
 		Enum.FontWeight.Light,
 		Enum.FontStyle.Normal
 	),
-	InconsolataSemiBold = Font.new(
+	RobotoMonoSemiBold = Font.new(
 		"rbxasset://fonts/families/RobotoMono.json",
 		Enum.FontWeight.Bold,
 		Enum.FontStyle.Normal
@@ -48,6 +53,7 @@ local MIN_HEIGHT = 200
 return function()
 	local inputBoxText, setInputBoxText = React.useState("")
 	local outputBoxText, setOutputBoxText = React.useState("")
+	local suggests, setSuggests = React.useState({} :: { string })
 	local shown, setShown = React.useState(true)
 
 	local draggerDragDetectorRef = React.useRef(nil :: UIDragDetector?)
@@ -58,6 +64,7 @@ return function()
 	local inputBoxRef = React.useRef(nil :: TextBox?)
 	local submitRef = React.useRef(nil :: Frame?)
 	local submitTextRef = React.useRef(nil :: TextLabel?)
+	local suggestContainerRef = React.useRef(nil :: Frame?)
 	local resizeRef = React.useRef(nil :: Frame?)
 	local resizeDragDetectorRef = React.useRef(nil :: UIDragDetector?)
 
@@ -82,6 +89,10 @@ return function()
 	end
 
 	local function submit()
+		if not RunService:IsRunning() then
+			return
+		end
+
 		RegistryServiceClient:runCommandByInputBoxText(inputBoxText)
 		setInputBoxText("")
 		task.wait()
@@ -170,12 +181,41 @@ return function()
 	end, {})
 
 	React.useEffect(function()
-		-- TODO: Подсказки
+		if inputBoxText == "" then
+			setSuggests({})
+			suggestContainerRef.current.Visible = false
+		else
+			if RunService:IsRunning() then
+				local commandNames = {}
+
+				for _, command in RegistryServiceClient.commands do
+					table.insert(commandNames, command.name)
+				end
+
+				for _, serverCommandName in RegistryServiceClient.serverCommandNames() do
+					table.insert(commandNames, serverCommandName)
+				end
+
+				local commandNamesToSuggest = {} :: { string }
+
+				for _, commandName in commandNames do
+					if commandName ~= inputBoxText and string.find(commandName, inputBoxText) then
+						table.insert(commandNamesToSuggest, commandName)
+					end
+				end
+
+				setSuggests(commandNamesToSuggest)
+
+				suggestContainerRef.current.Visible = #commandNamesToSuggest > 0
+			end
+		end
+
+		return function() end
 	end, { inputBoxText })
 
 	React.useEffect(function()
 		if not RunService:IsRunning() then
-			return
+			return function() end
 		end
 
 		local messageOut = OutputServiceClient.messageOut:Connect(function(message, messageType)
@@ -224,11 +264,17 @@ return function()
 			Visible = shown,
 			ref = containerRef,
 		}, {
-			Stroke = e("UIStroke", {
-				Color = Color3.fromRGB(35, 35, 35),
-				BorderStrokePosition = Enum.BorderStrokePosition.Outer,
-				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-				LineJoinMode = Enum.LineJoinMode.Miter,
+			StrokeContainer = e("Frame", {
+				Size = UDim2.fromScale(1, 1),
+				BackgroundTransparency = 1,
+				ZIndex = 2,
+			}, {
+				Stroke = e("UIStroke", {
+					Color = Color3.fromRGB(35, 35, 35),
+					BorderStrokePosition = Enum.BorderStrokePosition.Inner,
+					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+					LineJoinMode = Enum.LineJoinMode.Miter,
+				}),
 			}),
 			Dragger = e("Frame", {
 				Size = UDim2.new(1, 0, 0, 33),
@@ -246,7 +292,7 @@ return function()
 				Text = "Console",
 				TextColor3 = Color3.fromRGB(235, 235, 235),
 				TextSize = 13,
-				FontFace = FONTS.InconsolataSemiBold,
+				FontFace = FONTS.RobotoMonoSemiBold,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextYAlignment = Enum.TextYAlignment.Top,
 				ZIndex = 2,
@@ -312,7 +358,7 @@ return function()
 						Text = outputBoxText,
 						TextColor3 = Color3.fromRGB(255, 255, 255),
 						TextSize = 13,
-						FontFace = FONTS.InconsolataLight,
+						FontFace = FONTS.RobotoMonoLight,
 						TextXAlignment = Enum.TextXAlignment.Left,
 						TextYAlignment = Enum.TextYAlignment.Top,
 						TextWrapped = true,
@@ -341,8 +387,8 @@ return function()
 				BorderSizePixel = 0,
 				Text = inputBoxText,
 				TextColor3 = Color3.new(0, 0, 0),
-				TextSize = 14,
-				FontFace = FONTS.InconsolataLight,
+				TextSize = 16,
+				FontFace = FONTS.RobotoMonoLight,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				ClearTextOnFocus = false,
 				ClipsDescendants = true,
@@ -381,7 +427,7 @@ return function()
 					Text = "Submit",
 					TextColor3 = COLORS.SUBMIT_TEXT,
 					TextSize = 14,
-					FontFace = FONTS.InconsolataLight,
+					FontFace = FONTS.RobotoMonoLight,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					ref = submitTextRef,
 				}, {
@@ -418,6 +464,87 @@ return function()
 					end,
 				}),
 			}),
+			SuggestContainer = e(
+				"Frame",
+				{
+					AnchorPoint = Vector2.new(0, 0),
+					Position = UDim2.new(0, 16, 1, -16),
+					Size = UDim2.fromOffset(16, 16),
+					BackgroundColor3 = Color3.fromRGB(234, 234, 234),
+					BackgroundTransparency = 0,
+					BorderSizePixel = 0,
+					AutomaticSize = Enum.AutomaticSize.XY,
+					ZIndex = 2,
+					Visible = false,
+					ref = suggestContainerRef,
+				},
+				{
+					Stroke = e("UIStroke", {
+						Color = Color3.fromRGB(80, 80, 80),
+						BorderStrokePosition = Enum.BorderStrokePosition.Inner,
+						ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+						LineJoinMode = Enum.LineJoinMode.Miter,
+					}),
+					Padding = e("UIPadding", {
+						PaddingTop = UDim.new(0, 1),
+						PaddingBottom = UDim.new(0, 1),
+						PaddingLeft = UDim.new(0, 1),
+						PaddingRight = UDim.new(0, 1),
+					}),
+					ListLayout = e("UIListLayout"),
+				},
+				Sift.Array.map(suggests, function(suggest: string)
+					return e("Frame", {
+						Size = UDim2.fromOffset(14, 14),
+						BackgroundColor3 = COLORS.SUGGEST,
+						BackgroundTransparency = 0,
+						BorderSizePixel = 0,
+						AutomaticSize = Enum.AutomaticSize.X,
+					}, {
+						TextLabel = e("TextLabel", {
+							Size = UDim2.fromOffset(0, 14),
+							BackgroundTransparency = 1,
+							Text = suggest,
+							TextColor3 = Color3.fromRGB(79, 79, 79),
+							TextSize = 13,
+							FontFace = FONTS.RobotoMonoLight,
+							AutomaticSize = Enum.AutomaticSize.X,
+						}, {
+							Padding = e("UIPadding", {
+								PaddingLeft = UDim.new(0, 4),
+								PaddingRight = UDim.new(0, 8),
+							}),
+						}),
+						Button = e("TextButton", {
+							Size = UDim2.fromScale(1, 1),
+							BackgroundTransparency = 1,
+							TextTransparency = 1,
+							[React.Event.MouseEnter] = function(rbx: TextButton)
+								local parent = rbx.Parent :: Frame
+								local textLabel = parent:FindFirstChild("TextLabel") :: TextLabel
+
+								parent.BackgroundColor3 = COLORS.SUGGEST_HOVERED
+								textLabel.TextColor3 = COLORS.SUGGEST_TEXT_HOVERED
+
+								print(parent, textLabel)
+							end,
+							[React.Event.MouseLeave] = function(rbx: TextButton)
+								local parent = rbx.Parent :: Frame
+								local textLabel = parent:FindFirstChild("TextLabel") :: TextLabel
+
+								parent.BackgroundColor3 = COLORS.SUGGEST
+								textLabel.TextColor3 = COLORS.SUGGEST_TEXT
+							end,
+							[React.Event.MouseButton1Up] = function(rbx: TextButton)
+								local parent = rbx.Parent :: Frame
+								local textLabel = parent:FindFirstChild("TextLabel") :: TextLabel
+
+								setInputBoxText(textLabel.Text)
+							end,
+						}),
+					})
+				end)
+			),
 			Resize = e("Frame", {
 				AnchorPoint = Vector2.new(1, 1),
 				Position = UDim2.new(1, -4, 1, -4),
