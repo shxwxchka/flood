@@ -25,10 +25,10 @@ local DEFAULTS = {
 local COLORS = {
 	SCROLL_UP = Color3.fromRGB(208, 208, 208),
 	SCROLL_DOWN = Color3.fromRGB(208, 208, 208),
-	SCROLL_UP_HOVERED = Color3.fromRGB(211, 237, 255),
-	SCROLL_DOWN_HOVERED = Color3.fromRGB(211, 237, 255),
 	SCROLL_UP_ICON = Color3.fromRGB(57, 57, 57),
 	SCROLL_DOWN_ICON = Color3.fromRGB(57, 57, 57),
+	SCROLL_UP_HOVERED = Color3.fromRGB(211, 237, 255),
+	SCROLL_DOWN_HOVERED = Color3.fromRGB(211, 237, 255),
 	SCROLL_UP_ICON_HOVERED = Color3.fromRGB(12, 63, 70),
 	SCROLL_DOWN_ICON_HOVERED = Color3.fromRGB(12, 63, 70),
 	SCROLL_UP_HOLDED = Color3.fromRGB(25, 208, 248),
@@ -84,8 +84,8 @@ return React.forwardRef(function(props: DScrollPanelProps, ref: React.Ref<Scroll
 	end
 
 	React.useEffect(function()
-		canvasSizeChanged()
 		canvasPositionChanged()
+		canvasSizeChanged()
 	end, {})
 
 	React.useEffect(function()
@@ -107,18 +107,20 @@ return React.forwardRef(function(props: DScrollPanelProps, ref: React.Ref<Scroll
 			return
 		end
 
-		local function stopDragging()
-			setScrollDraggerHolded(false)
-		end
-
 		local inputEnded = UserInputService.InputEnded:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 then
-				stopDragging()
+			if
+				input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.Touch
+			then
+				setScrollDraggerHolded(false)
 			end
 		end)
 
 		local inputChanged = UserInputService.InputChanged:Connect(function(input)
-			if input.UserInputType ~= Enum.UserInputType.MouseMovement then
+			if
+				input.UserInputType ~= Enum.UserInputType.MouseMovement
+				and input.UserInputType ~= Enum.UserInputType.Touch
+			then
 				return
 			end
 
@@ -335,8 +337,15 @@ return React.forwardRef(function(props: DScrollPanelProps, ref: React.Ref<Scroll
 		Hitbox = e("Frame", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
-			ZIndex = 3,
+			ZIndex = 1,
 			ref = hitboxRef,
+		}, {
+			Button = e("TextButton", {
+				Size = UDim2.fromScale(1, 1),
+				BackgroundTransparency = 1,
+				TextTransparency = 1,
+				ref = scrollDraggerButtonRef,
+			}),
 		}),
 	})
 end)

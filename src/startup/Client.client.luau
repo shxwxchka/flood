@@ -1,7 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local OutputService = require(ReplicatedStorage.Source.Features.Output.OutputService)
+local OutputServiceClient = require(ReplicatedStorage.Source.Features.Output.OutputServiceClient)
+local RegistryServiceClient = require(ReplicatedStorage.Source.Features.Registry.RegistryServiceClient)
 local UI = require(script.Parent.UI)
 
-OutputService:init()
+OutputServiceClient:init()
+RegistryServiceClient:init()
+
 UI:mount()

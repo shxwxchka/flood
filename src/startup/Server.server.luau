@@ -1,5 +1,7 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
-local OutputService = require(ReplicatedStorage.Source.Features.Output.OutputService)
+local OutputServiceServer = require(ServerScriptService.Features.Output.OutputServiceServer)
+local RegistryServiceServer = require(ServerScriptService.Features.Registry.RegistryServiceServer)
 
-OutputService:init()
+OutputServiceServer:init()
+RegistryServiceServer:init()

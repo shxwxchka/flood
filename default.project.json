@@ -40,8 +40,38 @@
           },
           "Output": {
             "$className": "Folder",
-            "OutputService": {
-              "$path": "src/features/output/OutputService.luau"
+            "Modules": {
+              "$className": "Folder",
+              "FilterMessageType": {
+                "$path": "src/features/output/modules/FilterMessageType.luau"
+              }
+            },
+            "OutputServiceClient": {
+              "$path": "src/features/output/OutputServiceClient.luau"
+            }
+          },
+          "Registry": {
+            "$className": "Folder",
+            "Modules": {
+              "$className": "Folder",
+              "BuiltInCommands": {
+                "$className": "Folder",
+                "echoClient": {
+                  "$path": "src/features/registry/modules/builtInCommands/echoClient.luau"
+                }
+              }
+            },
+            "RegistryServiceClient": {
+              "$path": "src/features/registry/RegistryServiceClient.luau"
+            },
+            "RegistryServiceUtils": {
+              "$path": "src/features/registry/RegistryServiceUtils.luau"
+            },
+            "RegistryTypes": {
+              "$path": "src/features/registry/RegistryTypes.luau"
+            },
+            "RegistryTypesClient": {
+              "$path": "src/features/registry/RegistryTypesClient.luau"
             }
           }
         },
@@ -49,6 +79,12 @@
           "$className": "Folder",
           "UI": {
             "$className": "Folder",
+            "ColorizeText": {
+              "$path": "src/core/ui/ColorizeText.luau"
+            },
+            "EscapeText": {
+              "$path": "src/core/ui/EscapeText.luau"
+            },
             "IsMouseEntered": {
               "$path": "src/core/ui/IsMouseEntered.luau"
             },
@@ -76,7 +112,34 @@
     },
     "ServerScriptService": {
       "Features": {
-        "$className": "Folder"
+        "$className": "Folder",
+        "Output": {
+          "$className": "Folder",
+          "OutputServiceServer": {
+            "$path": "src/features/output/OutputServiceServer.luau"
+          }
+        },
+        "Registry": {
+          "$className": "Folder",
+          "Modules": {
+            "$className": "Folder",
+            "BuiltInCommands": {
+              "$className": "Folder",
+              "kickServer": {
+                "$path": "src/features/registry/modules/builtInCommands/kickServer.luau"
+              },
+              "killServer": {
+                "$path": "src/features/registry/modules/builtInCommands/killServer.luau"
+              }
+            }
+          },
+          "RegistryServiceServer": {
+            "$path": "src/features/registry/RegistryServiceServer.luau"
+          },
+          "RegistryTypesServer": {
+            "$path": "src/features/registry/RegistryTypesServer.luau"
+          }
+        }
       },
       "Core": {
         "$className": "Folder"

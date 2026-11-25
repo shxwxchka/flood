@@ -4,8 +4,11 @@ local TextService = game:GetService("TextService")
 local UserInputService = game:GetService("UserInputService")
 
 local React = require(ReplicatedStorage.Packages.React)
+local ColorizeText = require(ReplicatedStorage.Source.Core.UI.ColorizeText)
+local EscapeText = require(ReplicatedStorage.Source.Core.UI.EscapeText)
 local DScrollPanel = require(ReplicatedStorage.Source.Features.App.UI.Components.Vgui.DScrollPanel)
-local OutputService = require(ReplicatedStorage.Source.Features.Output.OutputService)
+local OutputServiceClient = require(ReplicatedStorage.Source.Features.Output.OutputServiceClient)
+local RegistryServiceClient = require(ReplicatedStorage.Source.Features.Registry.RegistryServiceClient)
 
 local e = React.createElement
 
@@ -13,8 +16,8 @@ type DScrollPanel = typeof(DScrollPanel)
 
 local COLORS = {
 	SUBMIT = Color3.fromRGB(228, 228, 228),
-	SUBMIT_HOVERED = Color3.fromRGB(241, 241, 241),
 	SUBMIT_TEXT = Color3.fromRGB(81, 81, 81),
+	SUBMIT_HOVERED = Color3.fromRGB(241, 241, 241),
 	SUBMIT_TEXT_HOVERED = Color3.fromRGB(32, 115, 180),
 	SUBMIT_HOLD = Color3.fromRGB(83, 180, 245),
 	SUBMIT_TEXT_HOLD = Color3.fromRGB(255, 255, 255),
@@ -47,6 +50,7 @@ return function()
 	local outputBoxText, setOutputBoxText = React.useState("")
 	local shown, setShown = React.useState(true)
 
+	local draggerDragDetectorRef = React.useRef(nil :: UIDragDetector?)
 	local dScrollPanelRef = React.useRef(nil :: DScrollPanel)
 	local containerRef = React.useRef(nil :: Frame?)
 	local outputBoxRef = React.useRef(nil :: TextBox?)
@@ -78,6 +82,7 @@ return function()
 	end
 
 	local function submit()
+		RegistryServiceClient:runCommandByInputBoxText(inputBoxText)
 		setInputBoxText("")
 		task.wait()
 		inputBoxRef.current:CaptureFocus()
@@ -93,6 +98,66 @@ return function()
 	end
 
 	React.useEffect(function()
+		local startInputPosition: Vector2?
+		local startPosition: UDim2?
+
+		local dragStart = draggerDragDetectorRef.current.DragStart:Connect(function(position: Vector2)
+			startInputPosition = position
+			startPosition = containerRef.current.Position
+		end)
+
+		local dragContinue = draggerDragDetectorRef.current.DragContinue:Connect(function(position: Vector2)
+			local delta = position - startInputPosition
+
+			containerRef.current.Position = UDim2.new(
+				startPosition.X.Scale,
+				startPosition.X.Offset + delta.X,
+				startPosition.Y.Scale,
+				startPosition.Y.Offset + delta.Y
+			)
+		end)
+
+		return function()
+			dragStart:Disconnect()
+			dragContinue:Disconnect()
+		end
+	end, {})
+
+	React.useEffect(function()
+		local startInputPosition: Vector2?
+		local startPosition: UDim2?
+		local startSize: Vector2?
+
+		local dragStart = resizeDragDetectorRef.current.DragStart:Connect(function(position: Vector2)
+			startInputPosition = position
+			startSize = containerRef.current.AbsoluteSize
+			startPosition = containerRef.current.Position
+		end)
+
+		local dragContinue = resizeDragDetectorRef.current.DragContinue:Connect(function(position: Vector2)
+			local anchorPoint = containerRef.current.AnchorPoint
+			local delta = position - startInputPosition
+			local newWidth = math.max(MIN_WIDTH, startSize.X + delta.X)
+			local newHeight = math.max(MIN_HEIGHT, startSize.Y + delta.Y)
+			local deltaWidth = newWidth - startSize.X
+			local deltaHeight = newHeight - startSize.Y
+
+			containerRef.current.Size = UDim2.fromOffset(newWidth, newHeight)
+			containerRef.current.Position = UDim2.new(
+				startPosition.X.Scale,
+				startPosition.X.Offset + deltaWidth * anchorPoint.X,
+				startPosition.Y.Scale,
+				startPosition.Y.Offset + deltaHeight * anchorPoint.Y
+			)
+		end)
+
+		return function()
+			dragStart:Disconnect()
+			dragContinue:Disconnect()
+		end
+	end, {})
+
+	React.useEffect(function()
 		updateOutputBoxSize()
 
 		local textChanged = outputBoxRef.current:GetPropertyChangedSignal("Text"):Connect(updateOutputBoxSize)
@@ -105,51 +170,16 @@ return function()
 	end, {})
 
 	React.useEffect(function()
-		local startPosition, startSize, startAnchorPosition
-
-		local dragStart = resizeDragDetectorRef.current.DragStart:Connect(function(position: Vector2)
-			local parent = containerRef.current.Parent :: GuiObject
-
-			startPosition = position
-			startSize = containerRef.current.AbsoluteSize
-
-			local relativeTopLeft = containerRef.current.AbsolutePosition - parent.AbsolutePosition
-			local anchorPoint = containerRef.current.AnchorPoint
-			local apX, apY = anchorPoint.X, anchorPoint.Y
-
-			startAnchorPosition = relativeTopLeft + Vector2.new(startSize.X * apX, startSize.Y * apY)
-		end)
-
-		local dragContinue = resizeDragDetectorRef.current.DragContinue:Connect(function(position: Vector2)
-			local container = containerRef.current
-			local delta = position - startPosition
-			local newWidth = math.max(MIN_WIDTH, startSize.X + delta.X)
-			local newHeight = math.max(MIN_HEIGHT, startSize.Y + delta.Y)
-
-			local deltaWidth = newWidth - startSize.X
-			local deltaHeight = newHeight - startSize.Y
-			local anchorPoint = container.AnchorPoint
-
-			container.Size = UDim2.fromOffset(newWidth, newHeight)
-			container.Position = UDim2.fromOffset(
-				startAnchorPosition.X + deltaWidth * anchorPoint.X,
-				startAnchorPosition.Y + deltaHeight * anchorPoint.Y
-			)
-		end)
-
-		return function()
-			dragStart:Disconnect()
-			dragContinue:Disconnect()
-		end
-	end, {})
+		-- TODO: Подсказки
+	end, { inputBoxText })
 
 	React.useEffect(function()
 		if not RunService:IsRunning() then
 			return
 		end
 
-		local messageOut = OutputService.messageOut:Connect(function(message, messageType)
-			setOutputBoxText(function(prevMessages)
+		local messageOut = OutputServiceClient.messageOut:Connect(function(message, messageType)
+			setOutputBoxText(function(oldOutputBoxText)
 				local color = COLORS.MESSAGE_OUTPUT
 
 				if messageType == "warn" then
@@ -158,10 +188,9 @@ return function()
 					color = COLORS.MESSAGE_ERROR
 				end
 
-				local r, g, b = math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255)
-				local coloredMessage = "<font color='rgb(" .. r .. "," .. g .. "," .. b .. ")'>" .. message .. "</font>"
+				local formattedMessage = ColorizeText(EscapeText(message), color)
 
-				return if prevMessages == "" then coloredMessage else prevMessages .. "\n" .. coloredMessage
+				return if oldOutputBoxText == "" then formattedMessage else oldOutputBoxText .. "\n" .. formattedMessage
 			end)
 		end)
 
@@ -201,7 +230,16 @@ return function()
 				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 				LineJoinMode = Enum.LineJoinMode.Miter,
 			}),
-			DragDetector = e("UIDragDetector"),
+			Dragger = e("Frame", {
+				Size = UDim2.new(1, 0, 0, 33),
+				BackgroundTransparency = 1,
+				ZIndex = 2,
+			}, {
+				DragDetector = e("UIDragDetector", {
+					DragStyle = Enum.UIDragDetectorDragStyle.Scriptable,
+					ref = draggerDragDetectorRef,
+				}),
+			}),
 			Title = e("TextLabel", {
 				Size = UDim2.new(1, 0, 0, 32),
 				BackgroundTransparency = 1,
@@ -225,7 +263,7 @@ return function()
 				Top = e("Frame", {
 					AnchorPoint = Vector2.new(0.5, 0),
 					Position = UDim2.fromScale(0.5, 0),
-					Size = UDim2.new(1, 0, 0, 31 + 2),
+					Size = UDim2.new(1, 0, 0, 33),
 					BackgroundColor3 = Color3.fromRGB(107, 110, 114),
 					BorderSizePixel = 0,
 				}),
@@ -253,8 +291,8 @@ return function()
 			}),
 			Output = e("Frame", {
 				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.new(0.5, 0, 0, 31 + 2),
-				Size = UDim2.new(1, -32, 1, -79 - 2),
+				Position = UDim2.new(0.5, 0, 0, 33),
+				Size = UDim2.new(1, -32, 1, -81),
 				BackgroundColor3 = Color3.fromRGB(79, 80, 83),
 				BackgroundTransparency = 0.05,
 				BorderSizePixel = 0,
@@ -279,9 +317,10 @@ return function()
 						TextYAlignment = Enum.TextYAlignment.Top,
 						TextWrapped = true,
 						RichText = true,
-						MultiLine = true,
 						ClearTextOnFocus = false,
+						MultiLine = true,
 						TextEditable = false,
+						Interactable = false,
 						ref = outputBoxRef,
 					}, {
 						Padding = e("UIPadding", {
@@ -403,7 +442,7 @@ return function()
 				Position = UDim2.new(1, -8, 0, 8),
 				Size = UDim2.fromOffset(15, 15),
 				BackgroundTransparency = 1,
-				ZIndex = 2,
+				ZIndex = 3,
 			}, {
 				Icon = e("ImageLabel", {
 					AnchorPoint = Vector2.new(0.5, 0.5),
