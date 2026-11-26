@@ -8,6 +8,7 @@ local Sift = require(ReplicatedStorage.Packages.Sift)
 local ColorizeText = require(ReplicatedStorage.Source.Core.UI.ColorizeText)
 local EscapeText = require(ReplicatedStorage.Source.Core.UI.EscapeText)
 local DScrollPanel = require(ReplicatedStorage.Source.Features.App.UI.Components.Vgui.DScrollPanel)
+local Suggest = require(ReplicatedStorage.Source.Features.Console.UI.Components.Suggest)
 local OutputServiceClient = require(ReplicatedStorage.Source.Features.Output.OutputServiceClient)
 local RegistryServiceClient = require(ReplicatedStorage.Source.Features.Registry.RegistryServiceClient)
 
@@ -22,10 +23,6 @@ local COLORS = {
 	SUBMIT_TEXT_HOVERED = Color3.fromRGB(32, 115, 180),
 	SUBMIT_HOLD = Color3.fromRGB(83, 180, 245),
 	SUBMIT_TEXT_HOLD = Color3.fromRGB(255, 255, 255),
-	SUGGEST = Color3.fromRGB(234, 234, 234),
-	SUGGEST_TEXT = Color3.fromRGB(79, 79, 79),
-	SUGGEST_HOVERED = Color3.fromRGB(133, 184, 241),
-	SUGGEST_TEXT_HOVERED = Color3.fromRGB(255, 255, 255),
 	MESSAGE_OUTPUT = Color3.fromRGB(255, 255, 255),
 	MESSAGE_WARN = Color3.fromRGB(255, 222, 102),
 	MESSAGE_ERROR = Color3.fromRGB(255, 90, 90),
@@ -54,6 +51,7 @@ return function()
 	local inputBoxText, setInputBoxText = React.useState("")
 	local outputBoxText, setOutputBoxText = React.useState("")
 	local suggests, setSuggests = React.useState({} :: { string })
+	local selectedSuggest, setSelectedSuggest = React.useState(nil :: string?)
 	local shown, setShown = React.useState(true)
 
 	local draggerDragDetectorRef = React.useRef(nil :: UIDragDetector?)
@@ -212,6 +210,32 @@ return function()
 
 		return function() end
 	end, { inputBoxText })
+
+	React.useEffect(function()
+		local inputBegan = UserInputService.InputBegan:Connect(function(input)
+			if input.KeyCode == Enum.KeyCode.Up then
+				local currentIndex = table.find(suggests, selectedSuggest) or 0
+				local nextSuggest = suggests[currentIndex + 1] or suggests[1]
+
+				setSelectedSuggest(nextSuggest)
+			elseif input.KeyCode == Enum.KeyCode.Down then
+				local currentIndex = table.find(suggests, selectedSuggest) or 0
+				local prevSuggest = suggests[currentIndex - 1] or suggests[#suggests]
+
+				setSelectedSuggest(prevSuggest)
+			end
+		end)
+
+		return function()
+			inputBegan:Disconnect()
+		end
+	end)
+
+	React.useEffect(function()
+		--setInputBoxText(selectedSuggest or "")
+
+		return function() end
+	end, { selectedSuggest })
 
 	React.useEffect(function()
 		if not RunService:IsRunning() then
@@ -494,54 +518,12 @@ return function()
 					ListLayout = e("UIListLayout"),
 				},
 				Sift.Array.map(suggests, function(suggest: string)
-					return e("Frame", {
-						Size = UDim2.fromOffset(14, 14),
-						BackgroundColor3 = COLORS.SUGGEST,
-						BackgroundTransparency = 0,
-						BorderSizePixel = 0,
-						AutomaticSize = Enum.AutomaticSize.X,
-					}, {
-						TextLabel = e("TextLabel", {
-							Size = UDim2.fromOffset(0, 14),
-							BackgroundTransparency = 1,
-							Text = suggest,
-							TextColor3 = Color3.fromRGB(79, 79, 79),
-							TextSize = 13,
-							FontFace = FONTS.RobotoMonoLight,
-							AutomaticSize = Enum.AutomaticSize.X,
-						}, {
-							Padding = e("UIPadding", {
-								PaddingLeft = UDim.new(0, 4),
-								PaddingRight = UDim.new(0, 8),
-							}),
-						}),
-						Button = e("TextButton", {
-							Size = UDim2.fromScale(1, 1),
-							BackgroundTransparency = 1,
-							TextTransparency = 1,
-							[React.Event.MouseEnter] = function(rbx: TextButton)
-								local parent = rbx.Parent :: Frame
-								local textLabel = parent:FindFirstChild("TextLabel") :: TextLabel
-
-								parent.BackgroundColor3 = COLORS.SUGGEST_HOVERED
-								textLabel.TextColor3 = COLORS.SUGGEST_TEXT_HOVERED
-
-								print(parent, textLabel)
-							end,
-							[React.Event.MouseLeave] = function(rbx: TextButton)
-								local parent = rbx.Parent :: Frame
-								local textLabel = parent:FindFirstChild("TextLabel") :: TextLabel
-
-								parent.BackgroundColor3 = COLORS.SUGGEST
-								textLabel.TextColor3 = COLORS.SUGGEST_TEXT
-							end,
-							[React.Event.MouseButton1Up] = function(rbx: TextButton)
-								local parent = rbx.Parent :: Frame
-								local textLabel = parent:FindFirstChild("TextLabel") :: TextLabel
-
-								setInputBoxText(textLabel.Text)
-							end,
-						}),
+					return e(Suggest, {
+						suggest = suggest,
+						selectedSuggest = selectedSuggest,
+						selectTrigger = function()
+							setSelectedSuggest(suggest)
+						end,
 					})
 				end)
 			),

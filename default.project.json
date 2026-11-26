@@ -33,6 +33,12 @@
             "$className": "Folder",
             "UI": {
               "$className": "Folder",
+              "Components": {
+                "$className": "Folder",
+                "Suggest": {
+                  "$path": "src/features/console/ui/components/Suggest.luau"
+                }
+              },
               "ConsoleRoot": {
                 "$path": "src/features/console/ui/ConsoleRoot.luau"
               }
