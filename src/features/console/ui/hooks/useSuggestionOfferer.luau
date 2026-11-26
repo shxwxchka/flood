@@ -6,6 +6,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local RegistryServiceClient = require(ReplicatedStorage.Source.Features.Registry.RegistryServiceClient)
 
 return function(
+	inputBoxRef: React.Ref<TextBox>,
 	inputBoxText: string,
 	suggests: { string },
 	setSuggests: ({ string }) -> (),
@@ -55,6 +56,10 @@ return function(
 		end
 
 		local inputBegan = UserInputService.InputBegan:Connect(function(input)
+			if UserInputService:GetFocusedTextBox() ~= inputBoxRef.current then
+				return
+			end
+
 			if input.KeyCode == Enum.KeyCode.Up then
 				local currentIndex = table.find(suggests, selectedSuggest, 1) or 0
 				local nextSuggest = suggests[currentIndex - 1] or suggests[#suggests]

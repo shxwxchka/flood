@@ -92,20 +92,19 @@ return function()
 		end)
 	end
 
-	if shown then
-		useMove(containerRef, moveDragDetectorRef)
-		useResize(containerRef, resizeDragDetectorRef, MIN_WIDTH, MIN_HEIGHT)
-		useAutoOutputBoxResizer(outputBoxRef, outputBoxPaddingRef)
-		useOutput(setOutputBoxText)
-		useSuggestionOfferer(
-			inputBoxText,
-			suggests,
-			setSuggests,
-			selectedSuggest,
-			setSelectedSuggest,
-			suggestContainerRef
-		)
-	end
+	useMove(containerRef, moveDragDetectorRef)
+	useResize(containerRef, resizeDragDetectorRef, MIN_WIDTH, MIN_HEIGHT)
+	useAutoOutputBoxResizer(outputBoxRef, outputBoxPaddingRef)
+	useOutput(setOutputBoxText)
+	useSuggestionOfferer(
+		inputBoxRef,
+		inputBoxText,
+		suggests,
+		setSuggests,
+		selectedSuggest,
+		setSelectedSuggest,
+		suggestContainerRef
+	)
 
 	React.useEffect(function()
 		local inputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
