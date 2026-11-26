@@ -41,7 +41,6 @@ return function(props: SuggestProps)
 	end
 
 	React.useEffect(function()
-		print(props.suggest, props.selectedSuggest)
 		if props.suggest == props.selectedSuggest then
 			selected()
 		else

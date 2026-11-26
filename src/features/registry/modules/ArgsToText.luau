@@ -1,11 +1,11 @@
 return function(args: { string }, from: number?)
-	local text = ""
+	local text = nil
 
 	for i = from or 1, #args do
 		if i == from then
 			text = args[i]
 		else
-			text = text .. " " .. args[i]
+			text = (text or "") .. " " .. args[i]
 		end
 	end
 

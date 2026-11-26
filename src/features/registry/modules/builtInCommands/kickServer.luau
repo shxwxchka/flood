@@ -6,6 +6,8 @@ local ArgsToText = require(ReplicatedStorage.Source.Features.Registry.Modules.Ar
 local OutputServiceServer = require(ServerScriptService.Features.Output.OutputServiceServer)
 local RegistryServiceServer = require(ServerScriptService.Features.Registry.RegistryServiceServer)
 
+local DEFAULT_MESSAGE = "Kicked from server"
+
 return function()
 	RegistryServiceServer:registerCommand({
 		name = "kick",
@@ -19,12 +21,12 @@ return function()
 				local player = Players:FindFirstChild(playerName) :: Player?
 
 				if player then
-					player:Kick(message or "Kicked from server")
+					player:Kick(message or DEFAULT_MESSAGE)
 
 					if runPlayer then
 						OutputServiceServer:messageOnClient(
 							runPlayer,
-							"Dropped " .. playerName .. " from server (Kicked from server)"
+							"Dropped " .. playerName .. " from server (" .. (message or DEFAULT_MESSAGE) .. ")"
 						)
 					end
 				else

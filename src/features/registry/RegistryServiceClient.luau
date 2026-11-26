@@ -81,7 +81,12 @@ end
 function RegistryServiceClient.runCommandByInputBoxText(self: RegistryServiceClient, inputText: string)
 	OutputServiceClient:message("] " .. inputText)
 
-	local formattedText = string.gsub(string.match(inputText, "^%s*(.-)%s*$") or "", "%s+", " ")
+	local formattedText = string.lower(string.gsub(string.match(inputText, "^%s*(.-)%s*$") or "", "%s+", " "))
+
+	if formattedText == "" then
+		return
+	end
+
 	local splittedText = string.split(formattedText, " ")
 
 	local name = splittedText[1]
