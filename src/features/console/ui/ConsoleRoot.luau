@@ -1,15 +1,16 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TextService = game:GetService("TextService")
 local UserInputService = game:GetService("UserInputService")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Sift = require(ReplicatedStorage.Packages.Sift)
-local ColorizeText = require(ReplicatedStorage.Source.Core.UI.ColorizeText)
-local EscapeText = require(ReplicatedStorage.Source.Core.UI.EscapeText)
 local DScrollPanel = require(ReplicatedStorage.Source.Features.App.UI.Components.Vgui.DScrollPanel)
 local Suggest = require(ReplicatedStorage.Source.Features.Console.UI.Components.Suggest)
-local OutputServiceClient = require(ReplicatedStorage.Source.Features.Output.OutputServiceClient)
+local useAutoOutputBoxResizer = require(ReplicatedStorage.Source.Features.Console.UI.Hooks.useAutoOutputBoxResizer)
+local useMove = require(ReplicatedStorage.Source.Features.Console.UI.Hooks.useMove)
+local useOutput = require(ReplicatedStorage.Source.Features.Console.UI.Hooks.useOutput)
+local useResize = require(ReplicatedStorage.Source.Features.Console.UI.Hooks.useResize)
+local useSuggestionOfferer = require(ReplicatedStorage.Source.Features.Console.UI.Hooks.useSuggestionOfferer)
 local RegistryServiceClient = require(ReplicatedStorage.Source.Features.Registry.RegistryServiceClient)
 
 local e = React.createElement
@@ -23,9 +24,6 @@ local COLORS = {
 	SUBMIT_TEXT_HOVERED = Color3.fromRGB(32, 115, 180),
 	SUBMIT_HOLD = Color3.fromRGB(83, 180, 245),
 	SUBMIT_TEXT_HOLD = Color3.fromRGB(255, 255, 255),
-	MESSAGE_OUTPUT = Color3.fromRGB(255, 255, 255),
-	MESSAGE_WARN = Color3.fromRGB(255, 222, 102),
-	MESSAGE_ERROR = Color3.fromRGB(255, 90, 90),
 }
 
 local FONTS = {
@@ -43,7 +41,8 @@ local FONTS = {
 
 local STARTER_ANCHOR_POINT = Vector2.new(1, 0)
 local STARTER_POSITION = UDim2.new(1, -16, 0, 16)
-local STARTER_SIZE = UDim2.fromOffset(712, 523)
+local STARTER_WIDTH = 712
+local STARTER_HEIGHT = 523
 local MIN_WIDTH = 300
 local MIN_HEIGHT = 200
 
@@ -54,46 +53,33 @@ return function()
 	local selectedSuggest, setSelectedSuggest = React.useState(nil :: string?)
 	local shown, setShown = React.useState(true)
 
-	local draggerDragDetectorRef = React.useRef(nil :: UIDragDetector?)
+	local moveDragDetectorRef = React.useRef(nil :: UIDragDetector)
+	local containerRef = React.useRef(nil :: Frame)
 	local dScrollPanelRef = React.useRef(nil :: DScrollPanel)
-	local containerRef = React.useRef(nil :: Frame?)
-	local outputBoxRef = React.useRef(nil :: TextBox?)
-	local outputBoxPaddingRef = React.useRef(nil :: UIPadding?)
-	local inputBoxRef = React.useRef(nil :: TextBox?)
-	local submitRef = React.useRef(nil :: Frame?)
-	local submitTextRef = React.useRef(nil :: TextLabel?)
-	local suggestContainerRef = React.useRef(nil :: Frame?)
-	local resizeRef = React.useRef(nil :: Frame?)
-	local resizeDragDetectorRef = React.useRef(nil :: UIDragDetector?)
-
-	local function updateOutputBoxSize()
-		local paddingTop = outputBoxPaddingRef.current.PaddingTop.Offset
-		local paddingBottom = outputBoxPaddingRef.current.PaddingBottom.Offset
-		local paddingLeft = outputBoxPaddingRef.current.PaddingLeft.Offset
-		local paddingRight = outputBoxPaddingRef.current.PaddingRight.Offset
-
-		local width = math.max(1, outputBoxRef.current.AbsoluteSize.X - paddingLeft - paddingRight)
-
-		local textBoundsParams = Instance.new("GetTextBoundsParams")
-		textBoundsParams.Text = string.gsub(outputBoxRef.current.Text, "<[^>]->", "")
-		textBoundsParams.Font = outputBoxRef.current.FontFace
-		textBoundsParams.Size = outputBoxRef.current.TextSize
-		textBoundsParams.Width = width
-
-		local textBounds = TextService:GetTextBoundsAsync(textBoundsParams)
-		local height = math.ceil(textBounds.Y) + paddingTop + paddingBottom
-
-		outputBoxRef.current.Size = UDim2.new(1, 0, 0, height)
-	end
+	local outputBoxRef = React.useRef(nil :: TextBox)
+	local outputBoxPaddingRef = React.useRef(nil :: UIPadding)
+	local inputBoxRef = React.useRef(nil :: TextBox)
+	local submitRef = React.useRef(nil :: Frame)
+	local submitTextRef = React.useRef(nil :: TextLabel)
+	local suggestContainerRef = React.useRef(nil :: Frame)
+	local resizeRef = React.useRef(nil :: Frame)
+	local resizeDragDetectorRef = React.useRef(nil :: UIDragDetector)
 
 	local function submit()
 		if not RunService:IsRunning() then
 			return
 		end
 
-		RegistryServiceClient:runCommandByInputBoxText(inputBoxText)
-		setInputBoxText("")
+		if selectedSuggest then
+			setInputBoxText(selectedSuggest .. " ")
+			setSelectedSuggest(nil)
+		else
+			RegistryServiceClient:runCommandByInputBoxText(inputBoxText)
+			setInputBoxText("")
+		end
+
 		task.wait()
+
 		inputBoxRef.current:CaptureFocus()
 
 		task.defer(function()
@@ -106,162 +92,20 @@ return function()
 		end)
 	end
 
-	React.useEffect(function()
-		local startInputPosition: Vector2?
-		local startPosition: UDim2?
-
-		local dragStart = draggerDragDetectorRef.current.DragStart:Connect(function(position: Vector2)
-			startInputPosition = position
-			startPosition = containerRef.current.Position
-		end)
-
-		local dragContinue = draggerDragDetectorRef.current.DragContinue:Connect(function(position: Vector2)
-			local delta = position - startInputPosition
-
-			containerRef.current.Position = UDim2.new(
-				startPosition.X.Scale,
-				startPosition.X.Offset + delta.X,
-				startPosition.Y.Scale,
-				startPosition.Y.Offset + delta.Y
-			)
-		end)
-
-		return function()
-			dragStart:Disconnect()
-			dragContinue:Disconnect()
-		end
-	end, {})
-
-	React.useEffect(function()
-		local startInputPosition: Vector2?
-		local startPosition: UDim2?
-		local startSize: Vector2?
-
-		local dragStart = resizeDragDetectorRef.current.DragStart:Connect(function(position: Vector2)
-			startInputPosition = position
-			startSize = containerRef.current.AbsoluteSize
-			startPosition = containerRef.current.Position
-		end)
-
-		local dragContinue = resizeDragDetectorRef.current.DragContinue:Connect(function(position: Vector2)
-			local anchorPoint = containerRef.current.AnchorPoint
-			local delta = position - startInputPosition
-			local newWidth = math.max(MIN_WIDTH, startSize.X + delta.X)
-			local newHeight = math.max(MIN_HEIGHT, startSize.Y + delta.Y)
-			local deltaWidth = newWidth - startSize.X
-			local deltaHeight = newHeight - startSize.Y
-
-			containerRef.current.Size = UDim2.fromOffset(newWidth, newHeight)
-			containerRef.current.Position = UDim2.new(
-				startPosition.X.Scale,
-				startPosition.X.Offset + deltaWidth * anchorPoint.X,
-				startPosition.Y.Scale,
-				startPosition.Y.Offset + deltaHeight * anchorPoint.Y
-			)
-		end)
-
-		return function()
-			dragStart:Disconnect()
-			dragContinue:Disconnect()
-		end
-	end, {})
-
-	React.useEffect(function()
-		updateOutputBoxSize()
-
-		local textChanged = outputBoxRef.current:GetPropertyChangedSignal("Text"):Connect(updateOutputBoxSize)
-		local sizeChanged = outputBoxRef.current:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateOutputBoxSize)
-
-		return function()
-			textChanged:Disconnect()
-			sizeChanged:Disconnect()
-		end
-	end, {})
-
-	React.useEffect(function()
-		if inputBoxText == "" then
-			setSuggests({})
-			suggestContainerRef.current.Visible = false
-		else
-			if RunService:IsRunning() then
-				local commandNames = {}
-
-				for _, command in RegistryServiceClient.commands do
-					table.insert(commandNames, command.name)
-				end
-
-				for _, serverCommandName in RegistryServiceClient.serverCommandNames() do
-					table.insert(commandNames, serverCommandName)
-				end
-
-				local commandNamesToSuggest = {} :: { string }
-
-				for _, commandName in commandNames do
-					if commandName ~= inputBoxText and string.find(commandName, inputBoxText) then
-						table.insert(commandNamesToSuggest, commandName)
-					end
-				end
-
-				setSuggests(commandNamesToSuggest)
-
-				suggestContainerRef.current.Visible = #commandNamesToSuggest > 0
-			end
-		end
-
-		return function() end
-	end, { inputBoxText })
-
-	React.useEffect(function()
-		local inputBegan = UserInputService.InputBegan:Connect(function(input)
-			if input.KeyCode == Enum.KeyCode.Up then
-				local currentIndex = table.find(suggests, selectedSuggest) or 0
-				local nextSuggest = suggests[currentIndex + 1] or suggests[1]
-
-				setSelectedSuggest(nextSuggest)
-			elseif input.KeyCode == Enum.KeyCode.Down then
-				local currentIndex = table.find(suggests, selectedSuggest) or 0
-				local prevSuggest = suggests[currentIndex - 1] or suggests[#suggests]
-
-				setSelectedSuggest(prevSuggest)
-			end
-		end)
-
-		return function()
-			inputBegan:Disconnect()
-		end
-	end)
-
-	React.useEffect(function()
-		--setInputBoxText(selectedSuggest or "")
-
-		return function() end
-	end, { selectedSuggest })
-
-	React.useEffect(function()
-		if not RunService:IsRunning() then
-			return function() end
-		end
-
-		local messageOut = OutputServiceClient.messageOut:Connect(function(message, messageType)
-			setOutputBoxText(function(oldOutputBoxText)
-				local color = COLORS.MESSAGE_OUTPUT
-
-				if messageType == "warn" then
-					color = COLORS.MESSAGE_WARN
-				elseif messageType == "error" then
-					color = COLORS.MESSAGE_ERROR
-				end
-
-				local formattedMessage = ColorizeText(EscapeText(message), color)
-
-				return if oldOutputBoxText == "" then formattedMessage else oldOutputBoxText .. "\n" .. formattedMessage
-			end)
-		end)
-
-		return function()
-			messageOut:Disconnect()
-		end
-	end, {})
+	if shown then
+		useMove(containerRef, moveDragDetectorRef)
+		useResize(containerRef, resizeDragDetectorRef, MIN_WIDTH, MIN_HEIGHT)
+		useAutoOutputBoxResizer(outputBoxRef, outputBoxPaddingRef)
+		useOutput(setOutputBoxText)
+		useSuggestionOfferer(
+			inputBoxText,
+			suggests,
+			setSuggests,
+			selectedSuggest,
+			setSelectedSuggest,
+			suggestContainerRef
+		)
+	end
 
 	React.useEffect(function()
 		local inputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
@@ -283,7 +127,7 @@ return function()
 		ConsoleContainer = e("Frame", {
 			AnchorPoint = STARTER_ANCHOR_POINT,
 			Position = STARTER_POSITION,
-			Size = STARTER_SIZE,
+			Size = UDim2.fromOffset(STARTER_WIDTH, STARTER_HEIGHT),
 			BackgroundTransparency = 1,
 			Visible = shown,
 			ref = containerRef,
@@ -291,7 +135,7 @@ return function()
 			StrokeContainer = e("Frame", {
 				Size = UDim2.fromScale(1, 1),
 				BackgroundTransparency = 1,
-				ZIndex = 2,
+				ZIndex = 3,
 			}, {
 				Stroke = e("UIStroke", {
 					Color = Color3.fromRGB(35, 35, 35),
@@ -300,14 +144,14 @@ return function()
 					LineJoinMode = Enum.LineJoinMode.Miter,
 				}),
 			}),
-			Dragger = e("Frame", {
+			Move = e("Frame", {
 				Size = UDim2.new(1, 0, 0, 33),
 				BackgroundTransparency = 1,
-				ZIndex = 2,
+				ZIndex = 3,
 			}, {
 				DragDetector = e("UIDragDetector", {
 					DragStyle = Enum.UIDragDetectorDragStyle.Scriptable,
-					ref = draggerDragDetectorRef,
+					ref = moveDragDetectorRef,
 				}),
 			}),
 			Title = e("TextLabel", {
@@ -319,7 +163,7 @@ return function()
 				FontFace = FONTS.RobotoMonoSemiBold,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextYAlignment = Enum.TextYAlignment.Top,
-				ZIndex = 2,
+				ZIndex = 3,
 			}, {
 				Padding = e("UIPadding", {
 					PaddingTop = UDim.new(0, 8),
@@ -329,6 +173,7 @@ return function()
 			Borders = e("Frame", {
 				Size = UDim2.fromScale(1, 1),
 				BackgroundTransparency = 1,
+				ZIndex = 1,
 			}, {
 				Top = e("Frame", {
 					AnchorPoint = Vector2.new(0.5, 0),
@@ -366,6 +211,7 @@ return function()
 				BackgroundColor3 = Color3.fromRGB(79, 80, 83),
 				BackgroundTransparency = 0.05,
 				BorderSizePixel = 0,
+				ZIndex = 1,
 			}, {
 				Stroke = e("UIStroke", {
 					Color = Color3.fromRGB(80, 80, 80),
@@ -416,6 +262,7 @@ return function()
 				TextXAlignment = Enum.TextXAlignment.Left,
 				ClearTextOnFocus = false,
 				ClipsDescendants = true,
+				ZIndex = 2,
 				ref = inputBoxRef,
 				[React.Change.Text] = function(rbx: TextLabel)
 					setInputBoxText(rbx.Text)
@@ -498,7 +345,7 @@ return function()
 					BackgroundTransparency = 0,
 					BorderSizePixel = 0,
 					AutomaticSize = Enum.AutomaticSize.XY,
-					ZIndex = 2,
+					ZIndex = 5,
 					Visible = false,
 					ref = suggestContainerRef,
 				},
@@ -521,8 +368,12 @@ return function()
 					return e(Suggest, {
 						suggest = suggest,
 						selectedSuggest = selectedSuggest,
-						selectTrigger = function()
+						mouseEnter = function()
 							setSelectedSuggest(suggest)
+						end,
+						mouseButton1Up = function()
+							setInputBoxText(suggest)
+							setSelectedSuggest(nil)
 						end,
 					})
 				end)
@@ -532,7 +383,7 @@ return function()
 				Position = UDim2.new(1, -4, 1, -4),
 				Size = UDim2.fromOffset(12, 12),
 				BackgroundTransparency = 1,
-				ZIndex = 2,
+				ZIndex = 3,
 				ref = resizeRef,
 			}, {
 				DragDetector = e("UIDragDetector", {
@@ -551,7 +402,7 @@ return function()
 				Position = UDim2.new(1, -8, 0, 8),
 				Size = UDim2.fromOffset(15, 15),
 				BackgroundTransparency = 1,
-				ZIndex = 3,
+				ZIndex = 4,
 			}, {
 				Icon = e("ImageLabel", {
 					AnchorPoint = Vector2.new(0.5, 0.5),

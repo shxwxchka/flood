@@ -41,6 +41,24 @@
               },
               "ConsoleRoot": {
                 "$path": "src/features/console/ui/ConsoleRoot.luau"
+              },
+              "Hooks": {
+                "$className": "Folder",
+                "useAutoOutputBoxResizer": {
+                  "$path": "src/features/console/ui/hooks/useAutoOutputBoxResizer.luau"
+                },
+                "useMove": {
+                  "$path": "src/features/console/ui/hooks/useMove.luau"
+                },
+                "useOutput": {
+                  "$path": "src/features/console/ui/hooks/useOutput.luau"
+                },
+                "useResize": {
+                  "$path": "src/features/console/ui/hooks/useResize.luau"
+                },
+                "useSuggestionOfferer": {
+                  "$path": "src/features/console/ui/hooks/useSuggestionOfferer.luau"
+                }
               }
             }
           },
@@ -60,6 +78,9 @@
             "$className": "Folder",
             "Modules": {
               "$className": "Folder",
+              "ArgsToText": {
+                "$path": "src/features/registry/modules/ArgsToText.luau"
+              },
               "BuiltInCommands": {
                 "$className": "Folder",
                 "echoClient": {

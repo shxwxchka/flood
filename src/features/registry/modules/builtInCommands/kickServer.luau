@@ -1,6 +1,8 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local ArgsToText = require(ReplicatedStorage.Source.Features.Registry.Modules.ArgsToText)
 local OutputServiceServer = require(ServerScriptService.Features.Output.OutputServiceServer)
 local RegistryServiceServer = require(ServerScriptService.Features.Registry.RegistryServiceServer)
 
@@ -11,12 +13,13 @@ return function()
 			local args = callbackConfig.args
 			local runPlayer = callbackConfig.runPlayer
 			local playerName = args and args[1]
+			local message = args and ArgsToText(args, 2)
 
 			if args and playerName then
 				local player = Players:FindFirstChild(playerName) :: Player?
 
 				if player then
-					player:Kick("Kicked from server")
+					player:Kick(message or "Kicked from server")
 
 					if runPlayer then
 						OutputServiceServer:messageOnClient(

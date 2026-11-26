@@ -9,8 +9,8 @@ return function()
 		callback = function(callbackConfig)
 			local text = ""
 
-			for i, sentence in callbackConfig.args do
-				text = i == 1 and sentence or text .. " " .. sentence
+			for i, word in callbackConfig.args do
+				text = i == 1 and word or text .. " " .. word
 			end
 
 			OutputServiceClient:message(text)

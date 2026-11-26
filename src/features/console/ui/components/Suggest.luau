@@ -7,7 +7,8 @@ local e = React.createElement
 type SuggestProps = {
 	suggest: string,
 	selectedSuggest: string?,
-	selectTrigger: () -> (),
+	mouseEnter: () -> (),
+	mouseButton1Up: () -> (),
 }
 
 local COLORS = {
@@ -26,9 +27,31 @@ local FONTS = {
 }
 
 return function(props: SuggestProps)
+	local suggestColor, setSuggestColor = React.useState(COLORS.SUGGEST)
+	local suggestTextColor, setSuggestTextColor = React.useState(COLORS.SUGGEST_TEXT)
+
+	local function selected()
+		setSuggestColor(COLORS.SUGGEST_SELECTED)
+		setSuggestTextColor(COLORS.SUGGEST_TEXT_SELECTED)
+	end
+
+	local function deselected()
+		setSuggestColor(COLORS.SUGGEST)
+		setSuggestTextColor(COLORS.SUGGEST_TEXT)
+	end
+
+	React.useEffect(function()
+		print(props.suggest, props.selectedSuggest)
+		if props.suggest == props.selectedSuggest then
+			selected()
+		else
+			deselected()
+		end
+	end, { props.selectedSuggest })
+
 	return e("Frame", {
 		Size = UDim2.fromOffset(14, 14),
-		BackgroundColor3 = props.selectedSuggest == props.suggest and COLORS.SUGGEST_SELECTED or COLORS.SUGGEST,
+		BackgroundColor3 = suggestColor,
 		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
 		AutomaticSize = Enum.AutomaticSize.X,
@@ -37,7 +60,7 @@ return function(props: SuggestProps)
 			Size = UDim2.fromOffset(0, 14),
 			BackgroundTransparency = 1,
 			Text = props.suggest,
-			TextColor3 = Color3.fromRGB(79, 79, 79),
+			TextColor3 = suggestTextColor,
 			TextSize = 13,
 			FontFace = FONTS.RobotoMonoLight,
 			AutomaticSize = Enum.AutomaticSize.X,
@@ -52,9 +75,15 @@ return function(props: SuggestProps)
 			BackgroundTransparency = 1,
 			TextTransparency = 1,
 			[React.Event.MouseEnter] = function()
-				props.selectTrigger()
+				selected()
+				props.mouseEnter()
 			end,
-			[React.Event.MouseButton1Up] = function() end,
+			[React.Event.MouseLeave] = function()
+				deselected()
+			end,
+			[React.Event.MouseButton1Up] = function()
+				props.mouseButton1Up()
+			end,
 		}),
 	})
 end

@@ -110,9 +110,9 @@ function RegistryServiceServer.askRunCommandOnServer(
 	askRunConfig.argsString = nil
 
 	if askRunConfig.args then
-		for i, sentence in askRunConfig.args do
-			if typeof(sentence) == "string" then
-				askRunConfig.argsString = i == 1 and sentence or askRunConfig.argsString .. " " .. sentence
+		for i, word in askRunConfig.args do
+			if typeof(word) == "string" then
+				askRunConfig.argsString = i == 1 and word or askRunConfig.argsString .. " " .. word
 			end
 		end
 	end
